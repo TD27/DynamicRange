@@ -29,11 +29,10 @@ class MyFirstPipeline(bspump.Pipeline):
             self.Sink
         )
 
-        # Publish-subsribe (https://asab.readthedocs.io/en/latest/asab/pubsub.html#asab.PubSub)
+        # Publish-subscribe (https://asab.readthedocs.io/en/latest/asab/pubsub.html#asab.PubSub)
         self.PubSub.publish("go!")
         self.PubSub.subscribe("bspump.pipeline.cycle_end!", self.on_cycle_end)
 
-    #
     def on_cycle_end(self, event_name, pipeline):
         print("--- The job is done! ---")
         self.App.stop()
