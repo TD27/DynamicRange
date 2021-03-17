@@ -8,7 +8,7 @@ import bspump.file
 import bspump.trigger
 
 
-class Harvester(bspump.Pipeline):
+class Harvester(bspump.Processor):
 
     def __init__(self, app, id=None, config=None):
         super().__init__(app, id, config)
@@ -19,10 +19,12 @@ class Harvester(bspump.Pipeline):
         self.CurrentWindow = np.zeros((2, self.MaxRow))
         self.StartTime = datetime.datetime(year=2020, month=6, day=7)
 
-        for i in range(self.MaxRow):
-            self.CurrentWindow[0, i] = (
-                    self.Resolution * i
-            )
+        self.Index = 0
+
+        # for i in range(self.MaxRow):
+        #     self.CurrentWindow[0, i] = (
+        #             self.Resolution * i
+        #     )
 
     def process(self, context, event):
         time = datetime.datetime.strptime(
@@ -48,6 +50,10 @@ class Harvester(bspump.Pipeline):
 
         # TODO: Apply aggregation
         self.CurrentWindow[1, dt] = value
+        self.CurrentWindow[0, dt] = int(dt)
+
+        print('Event No ', self.Index,':', event)
+        self.Index = self.Index + 1
 
         return event
 
