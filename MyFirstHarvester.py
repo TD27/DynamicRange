@@ -16,7 +16,7 @@ class Harvester(bspump.Processor):
 
         self.Resolution = 60 * 15  # 15 min sample interval
         self.StartTime = datetime.datetime(year=2020, month=6, day=8) # the day I want to capture events
-        self.MaxSample = int((24 * 60 * 60) / self.Resolution)
+        self.MaxSample = int((24 * 60 * 60) / self.Resolution)  # Max number of samples in a day
         self.Array = np.zeros((3, self.MaxSample))
 
     def process(self, context, event):
@@ -42,7 +42,7 @@ class Harvester(bspump.Processor):
         except ValueError:  # some events may have NaN value
             return event
 
-        dt = int(dt)
+        dt = int(dt)  # Integer makes number of the sample in a day
 
         # Calculates an average value in a given time interval
         self.Array[0, dt] = self.Array[0, dt] + value
