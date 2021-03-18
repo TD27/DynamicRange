@@ -45,9 +45,9 @@ class Harvester(bspump.Processor):
         dt = int(dt)  # Integer makes number of the sample in a day
 
         # Calculates an average value in a given time interval
-        self.CurrentWindow[0, dt] = self.CurrentWindow[0, dt] + value
-        self.CurrentWindow[1, dt] = self.CurrentWindow[1, dt] + 1
-        self.CurrentWindow[2, dt] = self.CurrentWindow[0, dt] / self.CurrentWindow[1, dt]
+        self.CurrentWindow[0, dt] = self.CurrentWindow[0, dt] + value  # sum of values
+        self.CurrentWindow[1, dt] = self.CurrentWindow[1, dt] + 1  # count of values
+        self.CurrentWindow[2, dt] = self.CurrentWindow[0, dt] / self.CurrentWindow[1, dt]  # average of values
 
         return event
 
