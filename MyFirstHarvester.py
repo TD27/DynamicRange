@@ -9,23 +9,24 @@ import bspump.trigger
 import pandas as pd
 
 
-class Harvester(bspump.Pipeline):
+class Harvester(bspump.Processor):
 
     def __init__(self, app, id=None, config=None):
         super().__init__(app, id, config)
 
-        self.Resolution = 60 * 60  # 5min interval# 5min interval
+        self.Resolution = 60 * 15  # 15 min sample interval
+        self.StartTime = datetime.datetime(year=2020, month=6, day=8) # the day I want to capture events
         self.MaxSample = int((24 * 60 * 60) / self.Resolution)
-        self.Dataset = np.zeros((3, self.MaxSample))
-        self.StartTime = datetime.datetime(year=2020, month=6, day=8)
+        self.Array = np.zeros((3, self.MaxSample))
 
     def process(self, context, event):
+        # Time of incoming event
         time = datetime.datetime.strptime(
             event['Time'],
             '%Y-%m-%d %H:%M:%S'
         )
 
-        # Delta time from StartTime
+        # Difference between incoming event and StartTime
         dt = (time - self.StartTime).total_seconds() / self.Resolution
 
         # An early event
@@ -38,20 +39,21 @@ class Harvester(bspump.Pipeline):
 
         try:
             value = float(event['Value'])
-        except ValueError:
+        except ValueError:  # some events may have NaN value
             return event
 
         dt = int(dt)
 
-        self.Dataset[0, dt] = self.Dataset[0, dt] + value
-        self.Dataset[1, dt] = self.Dataset[1, dt] + 1
-        self.Dataset[2, dt] = self.Dataset[0, dt] / self.Dataset[1, dt]
+        # Calculates an average value in a given time interval
+        self.Array[0, dt] = self.Array[0, dt] + value
+        self.Array[1, dt] = self.Array[1, dt] + 1
+        self.Array[2, dt] = self.Array[0, dt] / self.Array[1, dt]
 
         return event
 
     def dump(self):
-        # Returns average value of incoming events
-        df = pd.DataFrame(self.Dataset[2])
+        # Returns Pandas DataFrame
+        df = pd.DataFrame(self.Array[2])
         return df
 
 
@@ -75,7 +77,6 @@ class MyFirstPipeline(bspump.Pipeline):
         # Definition of my pipeline
         self.build(
             self.Source,
-            # self.Print,
             self.Harvester,
             self.Sink
         )
