@@ -17,7 +17,7 @@ class Harvester(bspump.Processor):
         self.Resolution = 60 * 15  # 15 min sample interval
         self.StartTime = datetime.datetime(year=2020, month=6, day=8) # the day I want to capture events
         self.MaxSample = int((24 * 60 * 60) / self.Resolution)  # Max number of samples in a day
-        self.Array = np.zeros((3, self.MaxSample))
+        self.CurrentWindow = np.zeros((3, self.MaxSample))
 
     def process(self, context, event):
         # Time of incoming event
@@ -45,15 +45,15 @@ class Harvester(bspump.Processor):
         dt = int(dt)  # Integer makes number of the sample in a day
 
         # Calculates an average value in a given time interval
-        self.Array[0, dt] = self.Array[0, dt] + value
-        self.Array[1, dt] = self.Array[1, dt] + 1
-        self.Array[2, dt] = self.Array[0, dt] / self.Array[1, dt]
+        self.CurrentWindow[0, dt] = self.CurrentWindow[0, dt] + value
+        self.CurrentWindow[1, dt] = self.CurrentWindow[1, dt] + 1
+        self.CurrentWindow[2, dt] = self.CurrentWindow[0, dt] / self.CurrentWindow[1, dt]
 
         return event
 
     def dump(self):
         # Returns Pandas DataFrame
-        df = pd.DataFrame(self.Array[2])
+        df = pd.DataFrame(self.CurrentWindow[2])
         return df
 
 
