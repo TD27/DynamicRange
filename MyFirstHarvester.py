@@ -8,16 +8,20 @@ import bspump.file
 import bspump.trigger
 import pandas as pd
 
-
 class Harvester(bspump.Processor):
 
     def __init__(self, app, id=None, config=None):
         super().__init__(app, id, config)
 
-        self.Resolution = 60 * 15  # 15 min sample interval
-        self.StartTime = datetime.datetime(year=2020, month=6, day=8) # the day I want to capture events
+        self.Resolution = 60 * 5  # 15 min sample interval
+        self.StartTime = datetime.datetime(year=2020, month=6, day=10) # the day I want to capture events
         self.MaxSample = int((24 * 60 * 60) / self.Resolution)  # Max number of samples in a day
-        self.CurrentWindow = np.zeros((3, self.MaxSample))
+        self.CurrentWindow = np.zeros((self.MaxSample, 4))
+
+        # Puts time range in seconds into the first column
+        for i in range(self.MaxSample):
+            dt = i * self.Resolution
+            self.CurrentWindow[i, 0] = dt
 
     def process(self, context, event):
         # Time of incoming event
@@ -45,15 +49,16 @@ class Harvester(bspump.Processor):
         dt = int(dt)  # Integer makes number of the sample in a day
 
         # Calculates an average value in a given time interval
-        self.CurrentWindow[0, dt] = self.CurrentWindow[0, dt] + value  # sum of values
-        self.CurrentWindow[1, dt] = self.CurrentWindow[1, dt] + 1  # count of values
-        self.CurrentWindow[2, dt] = self.CurrentWindow[0, dt] / self.CurrentWindow[1, dt]  # average of values
+        self.CurrentWindow[dt, 1] = self.CurrentWindow[dt, 1] + value  # sum of values
+        self.CurrentWindow[dt, 2] = self.CurrentWindow[dt, 2] + 1  # count of values
+        self.CurrentWindow[dt, 3] = self.CurrentWindow[dt, 1] / self.CurrentWindow[dt, 2]  # average of values
 
         return event
 
     def dump(self):
         # Returns Pandas DataFrame
-        df = pd.DataFrame(self.CurrentWindow[2])
+        df = pd.DataFrame(self.CurrentWindow[:, [0,3]])
+        df = df.rename(columns={0:'Time_range', 1:'Value'})
         return df
 
 
@@ -86,11 +91,14 @@ class MyFirstPipeline(bspump.Pipeline):
 
     def on_cycle_end(self, event_name, pipeline):
         df = self.Harvester.dump()
-        print(df)
+
+        #print(df)
+        df.to_csv('./daily_data_4.csv')
+        df.to_pickle("./daily_data_4.pkl")
+
         self.App.stop()
 
 
-print('I have started')
 if __name__ == '__main__':
     # Registration of the PumpService in ASAB
     app = bspump.BSPumpApplication()  # application object
