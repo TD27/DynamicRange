@@ -15,7 +15,7 @@ class Harvester(bspump.Processor):
 
         # 5 min harvesting granularity
         self.Resolution = 60 * 5
-        self.MaxRow = int((24 * 60 * 60) // self.Resolution)
+        self.MaxRow = int((24 * 60 * 60) / self.Resolution)
         self.CurrentWindow = np.zeros((2, self.MaxRow))
         self.StartTime = datetime.datetime(year=2020, month=6, day=7)
 
@@ -32,7 +32,7 @@ class Harvester(bspump.Processor):
             "%Y-%m-%d %H:%M:%S"
         )
 
-        # Don't process empty values
+        # Don't process values with NaN
         try:
             value = float(event['Value'])
         except ValueError:
@@ -51,9 +51,6 @@ class Harvester(bspump.Processor):
         # TODO: Apply aggregation
         self.CurrentWindow[1, dt] = value
         self.CurrentWindow[0, dt] = int(dt)
-
-        print('Event No ', self.Index,':', event)
-        self.Index = self.Index + 1
 
         return event
 
