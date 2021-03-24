@@ -10,8 +10,6 @@ import bspump.trigger
 import numpy as np
 import pandas as pd
 
-import DynamicRange
-
 from DynamicRange import DR_model
 
 
@@ -20,31 +18,49 @@ class RangeEvaluator(bspump.Processor):
     def __init__(self, app, id=None, config=None):
         super().__init__(app, id, config)
 
-        self.Symptom = False
+        self.PathModel = './trained_model.pkl'
+        self.model = pickle.load(open(self.PathModel, 'rb'))
 
-        # špatně umisťuji pickle file
-        # Download and unpickle a model
-        pickle_file = open('/home/tomasdolezal/PycharmProjects/DynamicRange/model.pkl', 'rb')  # use your path
-        self.model = pickle.load(pickle_file)
-        pickle_file.close()
+        self.results = np.empty((0, 3))
+        self.symptoms = np.empty((0, 4))
 
     def process(self, context, event):
 
-        time = datetime.datetime.strptime(event['Time'], '%Y-%m-%d %H:%M:%S').time()
+        time = datetime.datetime.strptime(event['Time'], '%Y-%m-%d %H:%M:%S')
 
-        print('Jsem v RangeEvaluatoru')
-        print(self.model.df_predict)
-        print(time)
+        min_limit, max_limit = self.model.get(time.time())
 
-        min_limit, max_limit = self.model.get(time)
-
-        print(min_limit)
+        try:
+            value = float(event['Value'])
+        except ValueError:  # some events may have NaN value
+            return event
 
         # Value exceeds the given min or max limits for the actual time period
-        if (event['Value'] < min_limit) | (event['Value'] > max_limit):
-            print('Exceeded min limits')
-        else:
-            print('Value is OK')
+        if (value < min_limit) | (value > max_limit):
+            self.symptoms = np.append(self.symptoms,
+                                      [[time, value, min_limit, max_limit]],
+                                      axis=0)
+
+        self.results = np.append(self.results,
+                                 [[value, min_limit, max_limit]],
+                                 axis=0)
+
+        return event
+
+    def dump(self):
+        # Returns Pandas DataFrames
+        df1 = pd.DataFrame(self.results)
+        df1 = df1.rename(columns={0: 'Value',
+                                  1: 'Min_limit',
+                                  2: 'Max_limit'})
+
+        df2 = pd.DataFrame(self.symptoms)
+        df2 = df2.rename(columns={0: 'Time',
+                                  1: 'Value',
+                                  2: 'Min_limit',
+                                  3: 'Max_limit'})
+
+        return df1, df2
 
 
 class Harvester(bspump.Processor):
@@ -102,7 +118,7 @@ class Harvester(bspump.Processor):
 
 
 class MyFirstPipeline(bspump.Pipeline):
-    def __init__(self, app, pipeline_id):
+    def __init__(self, app, pipeline_id=None):
         super().__init__(app, pipeline_id)
 
         # Definition of my source
@@ -122,9 +138,9 @@ class MyFirstPipeline(bspump.Pipeline):
         # Definition of my pipeline
         self.build(
             self.Source,
-            # self.Harvester,
             self.Print,
             self.RangeEvaluator,
+            # self.Harvester,
             self.Sink
         )
 
@@ -132,13 +148,14 @@ class MyFirstPipeline(bspump.Pipeline):
         self.PubSub.subscribe("bspump.pipeline.cycle_end!", self.on_cycle_end)
 
     def on_cycle_end(self, event_name, pipeline):
-        #       df = self.Harvester.dump()
+        df1, df2 = self.RangeEvaluator.dump()
+        df1.to_csv('./results.csv')
+        df2.to_csv('./symptoms.csv')
 
         self.App.stop()
 
 
 print('I have started')
-
 
 if __name__ == '__main__':
     # Registration of the PumpService in ASAB
