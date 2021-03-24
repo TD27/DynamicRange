@@ -19,16 +19,16 @@ class RangeEvaluator(bspump.Processor):
         super().__init__(app, id, config)
 
         self.PathModel = './trained_model.pkl'
-        self.model = pickle.load(open(self.PathModel, 'rb'))
+        self.Model = pickle.load(open(self.PathModel, 'rb'))
 
-        self.results = np.empty((0, 3))
-        self.symptoms = np.empty((0, 4))
+        self.Results = np.empty((0, 3))
+        self.Symptoms = np.empty((0, 4))
 
     def process(self, context, event):
 
         time = datetime.datetime.strptime(event['Time'], '%Y-%m-%d %H:%M:%S')
 
-        min_limit, max_limit = self.model.get(time.time())
+        min_limit, max_limit = self.Model.get(time.time())
 
         try:
             value = float(event['Value'])
@@ -37,11 +37,11 @@ class RangeEvaluator(bspump.Processor):
 
         # Value exceeds the given min or max limits for the actual time period
         if (value < min_limit) | (value > max_limit):
-            self.symptoms = np.append(self.symptoms,
+            self.Symptoms = np.append(self.Symptoms,
                                       [[time, value, min_limit, max_limit]],
                                       axis=0)
 
-        self.results = np.append(self.results,
+        self.Results = np.append(self.Results,
                                  [[value, min_limit, max_limit]],
                                  axis=0)
 
@@ -49,12 +49,12 @@ class RangeEvaluator(bspump.Processor):
 
     def dump(self):
         # Returns Pandas DataFrames
-        df1 = pd.DataFrame(self.results)
+        df1 = pd.DataFrame(self.Results)
         df1 = df1.rename(columns={0: 'Value',
                                   1: 'Min_limit',
                                   2: 'Max_limit'})
 
-        df2 = pd.DataFrame(self.symptoms)
+        df2 = pd.DataFrame(self.Symptoms)
         df2 = df2.rename(columns={0: 'Time',
                                   1: 'Value',
                                   2: 'Min_limit',
