@@ -32,8 +32,8 @@ class DR_model:
             print('Model cannot calculate value. It needs more days to predict value')
             self.df_predict['STD'] = 0
 
-        self.df_predict['Min_Limit'] = self.df_predict['Median'] - self.df_predict['STD']
-        self.df_predict['Max_Limit'] = self.df_predict['Median'] + self.df_predict['STD']
+        self.df_predict['Min_Limit'] = self.df_predict['Median'] - 3*self.df_predict['STD']
+        self.df_predict['Max_Limit'] = self.df_predict['Median'] + 3*self.df_predict['STD']
         return self.df_predict
 
     def get(self, time):
@@ -51,7 +51,7 @@ class DR_model:
 
 model = DR_model()
 
-name = '/home/tomasdolezal/PycharmProjects/DynamicRange/model.pkl'
+name = './dynamic_range_model.pkl'
 pickle_file = open(name, 'wb')
 pickle.dump(model, pickle_file)
 pickle_file.close()
